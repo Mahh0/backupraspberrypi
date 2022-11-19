@@ -89,6 +89,7 @@ echo -e "\n"
 
 # Send to desktop
 	# First, test if the computer is on, if not, wake it up
+wol=0
 PING=`ping -s 1 -c 2 "192.168.1.108" > /dev/null; echo $?`
 if [ $PING -eq 0 ];then
         echo -e "Host is UP \n"
@@ -99,13 +100,13 @@ elif [ $PING -eq 1 ];then
         if [ $PING -eq 0 ];then
                 echo "Host is UP after wake on lan"
                 echo -e "\n"
+		wol=1
         else
                 echo "Host still down"
                 echo -e "\n"
 		exit 1
         fi
 fi
-
 
 
 	# Computer is on : do the transfer
@@ -123,6 +124,10 @@ fi
 
 # Deleting the backup file from the disk
 rm -r /srv/samba/backups/$archive_file > /dev/null 2>&1 && echo "Backup successfuly deleted from disk" || ( echo "Error while deleting the backup from the disk !" && exit 1 )
+
+
+# Turn off the computer if it was waked on lan
+sshpass -f "/root/password" ssh desktopmaho "shutdown -s -t 00 -f"
 
 
 # Ending
