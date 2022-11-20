@@ -30,7 +30,7 @@ echo -e "\n"
 
 
 #What to backup
-backup_files="/home /root /srv/samba/Private /srv/samba/Keepass /srv/samba/Public /etc/systemd/system"
+backup_files="/home /root /srv/samba/Keepass /srv/samba/Public /etc/systemd/system"
 
 
 # Where to create the backup
@@ -91,22 +91,27 @@ echo -e "\n"
 	# First, test if the computer is on, if not, wake it up
 wol=0
 PING=`ping -s 1 -c 2 "192.168.1.108" > /dev/null; echo $?`
-if [ $PING -eq 0 ];then
+PING2=`ping -s 1 -c 2 "192.168.1.105" > /dev/null; echo $?`
+if [ $PING -eq 0 ] || [ $PING2 -eq 0 ]; then
         echo -e "Host is UP \n"
-elif [ $PING -eq 1 ];then
-        wakeonlan 88:d7:f6:c8:16:e4 | echo "Host not turned on. WOL packet sent"
-        sleep 3m | echo "Waiting 3 Minutes"
+elif ([ $PING -eq 1 ] && [ $PING2 -eq 1 ]); then
+        wakeonlan D8:5E:D3:E0:62:FC
+        echo "Host not turned on. WOL packet sent"
+        echo "Waiting 2 Minutes"
+        sleep 2m
         PING=`ping -s 1 -c 4 "192.168.1.108" > /dev/null; echo $?`
-        if [ $PING -eq 0 ];then
+        PING2=`ping -s 1 -c 2 "192.168.1.105" > /dev/null; echo $?`
+        if [ $PING -eq 0 ] || [ $PING2 -eq 0 ];then
                 echo "Host is UP after wake on lan"
                 echo -e "\n"
-		wol=1
+                wol=1
         else
                 echo "Host still down"
                 echo -e "\n"
-		exit 1
+                exit 1
         fi
 fi
+
 
 
 	# Computer is on : do the transfer
@@ -127,8 +132,9 @@ rm -r /srv/samba/backups/$archive_file > /dev/null 2>&1 && echo "Backup successf
 
 
 # Turn off the computer if it was waked on lan
-sshpass -f "/root/password" ssh desktopmaho "shutdown -s -t 00 -f"
-
+if [ $wol -eq 1 ]; then
+	sshpass -f "/root/password" ssh desktopmaho "shutdown -s -t 00 -f"
+fi
 
 # Ending
 echo "Backup successful !"
